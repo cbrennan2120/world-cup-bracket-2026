@@ -783,65 +783,7 @@ body {
   to { transform: translateY(0); opacity: 1; }
 }
 
-/* Mobile Responsive Adjustments for Bracket Tree */
-@media (max-width: 1200px) {
-  /* On tablets/mobiles, we can hide the dual sided display and show simplified round selection */
-  .mobile-bracket-notice {
-    display: block !important;
-    background-color: var(--color-navy-light);
-    color: var(--color-white);
-    padding: 12px;
-    border: 3px solid var(--color-border);
-    border-radius: 8px;
-    margin-bottom: 16px;
-    text-align: center;
-    font-weight: 600;
-    font-size: 0.9rem;
-  }
-}
-
-.mobile-bracket-notice {
-  display: none;
-}
-
-.mobile-round-selector {
-  display: none;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  overflow-x: auto;
-  padding: 4px 0;
-}
-
-@media (max-width: 1200px) {
-  .mobile-round-selector {
-    display: flex;
-  }
-  
-  .bracket-container {
-    min-width: unset;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .bracket-column {
-    height: auto;
-    width: 100%;
-    display: none;
-    gap: 16px;
-    padding: 10px 0;
-  }
-
-  .bracket-column.mobile-visible {
-    display: flex;
-    align-items: center;
-  }
-
-  .match-card {
-    width: 100%;
-    max-width: 320px;
-  }
-}
+/* Mobile Responsive Adjustments for Bracket Tree: We now maintain a scrollable horizontal layout on all screen sizes with grab-to-scroll and minimap navigation */
 
 /* Wildcard Checklist Styling */
 .wildcard-checkbox-card {

@@ -412,34 +412,35 @@ function switchView(tabId) {
   }
 }
 
-// Mobile view round selector
+// Mobile view round selector (Safe check)
 function setMobileRound(roundId) {
   activeMobileRound = roundId;
   
-  document.querySelectorAll('.mobile-round-selector .comic-btn').forEach(btn => {
-    btn.classList.remove('active');
-  });
-  document.getElementById(`m-btn-${roundId}`).classList.add('active');
+  const activeBtn = document.getElementById(`m-btn-${roundId}`);
+  if (activeBtn) {
+    document.querySelectorAll('.mobile-round-selector .comic-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    activeBtn.classList.add('active');
+  }
 
-  document.querySelectorAll('.bracket-column').forEach(col => {
-    col.classList.remove('mobile-visible');
-  });
-  document.querySelector('.center-champion-column').classList.remove('mobile-visible');
+  const columns = document.querySelectorAll('.bracket-column');
+  if (columns.length > 0) {
+    columns.forEach(col => {
+      col.classList.remove('mobile-visible');
+    });
+    const colLeft = document.getElementById(`${roundId}-left`);
+    const colRight = document.getElementById(`${roundId}-right`);
+    if (colLeft) colLeft.classList.add('mobile-visible');
+    if (colRight) colRight.classList.add('mobile-visible');
+  }
 
-  if (roundId === 'r32') {
-    document.getElementById('r32-left').classList.add('mobile-visible');
-    document.getElementById('r32-right').classList.add('mobile-visible');
-  } else if (roundId === 'r16') {
-    document.getElementById('r16-left').classList.add('mobile-visible');
-    document.getElementById('r16-right').classList.add('mobile-visible');
-  } else if (roundId === 'qf') {
-    document.getElementById('qf-left').classList.add('mobile-visible');
-    document.getElementById('qf-right').classList.add('mobile-visible');
-  } else if (roundId === 'sf') {
-    document.getElementById('sf-left').classList.add('mobile-visible');
-    document.getElementById('sf-right').classList.add('mobile-visible');
-  } else if (roundId === 'final') {
-    document.querySelector('.center-champion-column').classList.add('mobile-visible');
+  const centerCol = document.querySelector('.center-champion-column');
+  if (centerCol) {
+    centerCol.classList.remove('mobile-visible');
+    if (roundId === 'final') {
+      centerCol.classList.add('mobile-visible');
+    }
   }
 }
 
