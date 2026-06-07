@@ -19,7 +19,15 @@ export default async (req, context) => {
       });
     }
 
-    const expectedPasscode = process.env.ADMIN_PASSCODE || "admin2026";
+    const expectedPasscode = process.env.ADMIN_PASSCODE || (process.env.NETLIFY_DEV ? "admin2026" : null);
+    if (!expectedPasscode) {
+      console.error("ADMIN_PASSCODE environment variable is not configured on the server.");
+      return new Response(JSON.stringify({ error: "Server configuration error. Deletion is disabled until ADMIN_PASSCODE is set in Netlify." }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
     if (passcode !== expectedPasscode) {
       return new Response(JSON.stringify({ error: "Invalid admin passcode" }), {
         status: 403,

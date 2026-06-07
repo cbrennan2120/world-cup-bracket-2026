@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>USA '26 World Cup Bracket Showdown!</title>
+  <title>Chris Brennan's World Cup 2026 Bracket Challenge</title>
   <meta name="description" content="Predict group stage rankings and the knockout tree. Real-time scores, friend sharing, and leaderboard calculations.">
   <link rel="stylesheet" href="style.css">
   <!-- Compressed Link Sharing and Confetti libraries -->
@@ -21,7 +21,7 @@
     
     <!-- Header Banner -->
     <header class="comic-header-banner">
-      <h1 class="comic-title-main">USA '26 BRACKET SHOWDOWN!</h1>
+      <h1 class="comic-title-main">CHRIS BRENNAN'S WORLD CUP 2026 BRACKET CHALLENGE</h1>
       <p class="comic-subtitle">⭐ Predict the Champions & Challenge Your Friends! ⭐</p>
     </header>
 
@@ -51,8 +51,18 @@
       <button class="tab-btn" id="tab-leaderboard" onclick="switchView('leaderboard')">Leaderboard & Admin</button>
     </nav>
 
-    <!-- Main Content Section: Predictions -->
+     <!-- Main Content Section: Predictions -->
     <main id="section-my-predictions" class="view-section active">
+      
+      <!-- Progress Tracker -->
+      <div id="bracket-progress-tracker" class="comic-panel progress-tracker-panel" style="margin-bottom: 25px;">
+        <div class="progress-bar-label" style="font-family: var(--font-header); font-size: 1.1rem; color: var(--color-navy); margin-bottom: 8px;">
+          📋 Prediction Completion: <span id="progress-percent-display">0%</span> (<span id="progress-fraction-display">0 / 75 picks completed</span>)
+        </div>
+        <div class="progress-bar-bg" style="background-color: var(--color-white); border: 3px solid var(--color-border); border-radius: 6px; height: 20px; overflow: hidden; position: relative;">
+          <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%; height: 100%; background-color: var(--color-red); transition: width 0.3s ease, background-color 0.3s ease;"></div>
+        </div>
+      </div>
       
       <!-- Group Stage Header -->
       <h2 style="font-family: var(--font-header); text-align: center; color: var(--color-white); margin-bottom: 20px; font-size: 1.8rem; text-shadow: 2px 2px 0px #000;">
@@ -83,16 +93,20 @@
         Click on a team to advance them to the next round, all the way to the Champion!
       </p>
 
-      <!-- Mobile Round Selector (Visible only on mobile) -->
-      <div class="mobile-bracket-notice">
-        📱 Scroll horizontally or use tabs below to navigate rounds:
-      </div>
-      <div class="mobile-round-selector">
-        <button class="comic-btn active" id="m-btn-r32" onclick="setMobileRound('r32')">R32</button>
-        <button class="comic-btn" id="m-btn-r16" onclick="setMobileRound('r16')">R16</button>
-        <button class="comic-btn" id="m-btn-qf" onclick="setMobileRound('qf')">Quarters</button>
-        <button class="comic-btn" id="m-btn-sf" onclick="setMobileRound('sf')">Semis</button>
-        <button class="comic-btn" id="m-btn-final" onclick="setMobileRound('final')">Finals / Champ</button>
+      <!-- Unified Bracket Minimap Navigation -->
+      <div class="minimap-nav-container">
+        <div class="minimap-nav-title">🗺️ Bracket Navigator (Click to Jump or Drag to Pan)</div>
+        <div class="minimap-buttons">
+          <button class="minimap-btn" onclick="scrollToColumn('r32-left')">R32 L</button>
+          <button class="minimap-btn" onclick="scrollToColumn('r16-left')">R16 L</button>
+          <button class="minimap-btn" onclick="scrollToColumn('qf-left')">QF L</button>
+          <button class="minimap-btn" onclick="scrollToColumn('sf-left')">SF L</button>
+          <button class="minimap-btn btn-gold" onclick="scrollToColumn('final-match-container')">👑 FINAL</button>
+          <button class="minimap-btn" onclick="scrollToColumn('sf-right')">SF R</button>
+          <button class="minimap-btn" onclick="scrollToColumn('qf-right')">QF R</button>
+          <button class="minimap-btn" onclick="scrollToColumn('r16-right')">R16 R</button>
+          <button class="minimap-btn" onclick="scrollToColumn('r32-right')">R32 R</button>
+        </div>
       </div>
 
       <!-- Bracket Tree Scrollable Wrapper -->

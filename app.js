@@ -220,6 +220,7 @@ masterResults.nickname = "Master Results";
 let friendBracket = null;
 let leaderboardBank = [];
 let clientId = '';
+let liveGroupStandings = {};
 
 // Navigation & views
 let currentViewMode = 'my';
@@ -238,6 +239,12 @@ window.addEventListener('DOMContentLoaded', () => {
   
   // Fetch central database brackets on load
   fetchBracketsFromServer();
+
+  // Initialize premium UX features
+  initGrabToScroll();
+  initWheelScrollRedirect();
+  updateCompletionProgress();
+  initPathHoverHighlights();
   
   // Setup elements
   document.getElementById('save-nickname-btn').addEventListener('click', saveNickname);
@@ -345,6 +352,15 @@ function loadLocalStorage() {
       leaderboardBank = JSON.parse(savedBank);
     } catch(e) {
       console.error("Error loading leaderboard bank", e);
+    }
+  }
+
+  const savedStats = localStorage.getItem('wc_live_group_standings');
+  if (savedStats) {
+    try {
+      liveGroupStandings = JSON.parse(savedStats);
+    } catch(e) {
+      console.error("Error loading live group standings", e);
     }
   }
 }
@@ -518,6 +534,7 @@ function selectGroupTeam(groupLetter, teamId) {
   renderWildcards();
   renderKnockoutBracket();
   renderLeaderboard();
+  updateCompletionProgress();
 }
 
 // Handle Wildcard Checklist clicks
@@ -548,6 +565,7 @@ function toggleWildcardSelection(teamId) {
   renderWildcards();
   renderKnockoutBracket();
   renderLeaderboard();
+  updateCompletionProgress();
 }
 
 // Handle Knockout Winner Click
@@ -581,6 +599,8 @@ function selectKnockoutWinner(matchId, winnerId) {
 
   renderKnockoutBracket();
   renderLeaderboard();
+  updateCompletionProgress();
+  autoFocusMatch(matchId);
 }
 
 // Confetti burst
@@ -605,9 +625,30 @@ function renderGroupStage() {
     const card = document.createElement('div');
     card.className = 'group-card';
 
+    // Check LocalStorage for collapsed state
+    const isCollapsed = localStorage.getItem(`wc_group_collapsed_${groupLetter}`) === 'true';
+    if (isCollapsed) {
+      card.classList.add('collapsed');
+    }
+
     const header = document.createElement('div');
-    header.className = 'group-header';
-    header.textContent = `GROUP ${groupLetter}`;
+    header.className = 'group-header-row';
+
+    const headerTitle = document.createElement('div');
+    headerTitle.className = 'group-header';
+    headerTitle.textContent = `GROUP ${groupLetter}`;
+    header.appendChild(headerTitle);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'group-toggle-btn';
+    toggleBtn.textContent = isCollapsed ? '＋' : '－';
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const collapsed = card.classList.toggle('collapsed');
+      toggleBtn.textContent = collapsed ? '＋' : '－';
+      localStorage.setItem(`wc_group_collapsed_${groupLetter}`, collapsed ? 'true' : 'false');
+    });
+    header.appendChild(toggleBtn);
     card.appendChild(header);
 
     const teamList = document.createElement('div');
@@ -679,6 +720,21 @@ function renderGroupStage() {
     else inst.textContent = 'Standings completed! 👍';
     card.appendChild(inst);
 
+    // Collapsed summary preview
+    const summaryDiv = document.createElement('div');
+    summaryDiv.className = 'group-collapsed-summary';
+    if (picks.length > 0) {
+      const names = picks.map(id => {
+        const t = TEAM_MAP[id];
+        return t ? `${t.flag} ${t.name}` : id;
+      });
+      summaryDiv.textContent = names.join(' ➔ ');
+    } else {
+      summaryDiv.textContent = 'No picks made yet';
+      summaryDiv.style.color = 'var(--color-dark-gray)';
+    }
+    card.appendChild(summaryDiv);
+
     container.appendChild(card);
   });
 }
@@ -738,7 +794,12 @@ function renderWildcards() {
     label.appendChild(cb);
 
     const text = document.createElement('span');
-    text.textContent = `[G-${item.group}] ${item.team.flag} ${item.team.name}`;
+    const teamStats = liveGroupStandings[item.group]?.[item.team.id];
+    let statsText = '';
+    if (teamStats) {
+      statsText = ` (${teamStats.points} pts, GD ${teamStats.gd > 0 ? '+' + teamStats.gd : teamStats.gd})`;
+    }
+    text.textContent = `[G-${item.group}] ${item.team.flag} ${item.team.name}${statsText}`;
     label.appendChild(text);
 
     checklist.appendChild(label);
@@ -761,6 +822,7 @@ function renderKnockoutBracket() {
       
       const card = document.createElement('div');
       card.className = 'match-card';
+      card.id = `match-${matchId}`;
 
       const label = document.createElement('div');
       label.className = 'match-label';
@@ -829,6 +891,8 @@ function createMatchTeamRow(teamId, isWinner, isLoser) {
     row.textContent = 'TBD';
     return row;
   }
+
+  row.dataset.teamId = teamId;
 
   if (isWinner) row.classList.add('winner-selected');
   if (isLoser) row.classList.add('loser-selected');
@@ -1082,6 +1146,10 @@ function processLiveMatchesData(matches) {
   masterResults = newMaster;
   lastSyncedCount = completedMatchesCount;
   saveMasterResultsToStorage();
+
+  // Store globally and save to localStorage
+  liveGroupStandings = groupStandings;
+  localStorage.setItem('wc_live_group_standings', JSON.stringify(groupStandings));
 }
 
 // Update Sync Panel UI Text & Dot
@@ -1578,6 +1646,22 @@ async function publishBracketToLeaderboard() {
     return;
   }
 
+  // Count progress
+  let completed = 0;
+  Object.keys(DEFAULT_TEAMS).forEach(gLetter => {
+    const picks = state.groups[gLetter] || [];
+    completed += picks.filter(Boolean).length;
+  });
+  completed += (state.wildcards || []).length;
+  PROPAGATION_ORDER.forEach(mId => {
+    if (state.knockouts[mId]?.winner) completed += 1;
+  });
+
+  if (completed < 75) {
+    showToast(`❌ Cannot publish! Your bracket is incomplete (${completed}/75 selections made).`);
+    return;
+  }
+
   state.nickname = nickname;
   localStorage.setItem('wc_nickname', nickname);
   saveMyBracketToStorage();
@@ -1653,4 +1737,189 @@ async function fetchBracketsFromServer() {
 // Expose navigation functions to global window scope for inline HTML onclick handlers
 window.switchView = switchView;
 window.setMobileRound = setMobileRound;
+
+// Initialize premium UX features on DOM load
+function initGrabToScroll() {
+  const wrapper = document.querySelector('.bracket-tree-wrapper');
+  if (!wrapper) return;
+
+  let isDown = false;
+  let startX;
+  let scrollLeft;
+
+  wrapper.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return; // only left click
+    if (e.target.closest('.match-card') || e.target.closest('.minimap-btn') || e.target.closest('button')) return;
+
+    isDown = true;
+    wrapper.style.cursor = 'grabbing';
+    startX = e.pageX - wrapper.offsetLeft;
+    scrollLeft = wrapper.scrollLeft;
+  });
+
+  wrapper.addEventListener('mouseleave', () => {
+    isDown = false;
+    wrapper.style.cursor = 'grab';
+  });
+
+  wrapper.addEventListener('mouseup', () => {
+    isDown = false;
+    wrapper.style.cursor = 'grab';
+  });
+
+  wrapper.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - wrapper.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    wrapper.scrollLeft = scrollLeft - walk;
+  });
+}
+
+function initWheelScrollRedirect() {
+  const wrapper = document.querySelector('.bracket-tree-wrapper');
+  if (!wrapper) return;
+
+  wrapper.addEventListener('wheel', (e) => {
+    if (e.deltaY !== 0) {
+      e.preventDefault();
+      wrapper.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
+}
+
+function scrollToColumn(colId) {
+  const wrapper = document.querySelector('.bracket-tree-wrapper');
+  const col = document.getElementById(colId);
+  if (wrapper && col) {
+    const targetScrollLeft = col.offsetLeft - (wrapper.offsetWidth / 2) + (col.offsetWidth / 2);
+    wrapper.scrollTo({
+      left: targetScrollLeft,
+      behavior: 'smooth'
+    });
+    
+    // Update active class on minimap buttons
+    document.querySelectorAll('.minimap-btn').forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.getAttribute('onclick')?.includes(colId)) {
+        btn.classList.add('active');
+      }
+    });
+  }
+}
+window.scrollToColumn = scrollToColumn;
+
+function initPathHoverHighlights() {
+  const container = document.querySelector('.bracket-container');
+  if (!container) return;
+
+  container.addEventListener('mouseover', (e) => {
+    const row = e.target.closest('.match-team-row');
+    if (!row || !row.dataset.teamId) return;
+
+    const teamId = row.dataset.teamId;
+    document.querySelectorAll(`.match-team-row[data-team-id="${teamId}"]`).forEach(el => {
+      el.classList.add('path-highlight');
+      el.closest('.match-card')?.classList.add('match-highlight');
+    });
+  });
+
+  container.addEventListener('mouseout', (e) => {
+    const row = e.target.closest('.match-team-row');
+    if (!row) return;
+
+    document.querySelectorAll('.match-team-row.path-highlight').forEach(el => {
+      el.classList.remove('path-highlight');
+    });
+    document.querySelectorAll('.match-card.match-highlight').forEach(el => {
+      el.classList.remove('match-highlight');
+    });
+  });
+}
+
+function updateCompletionProgress() {
+  if (currentViewMode !== 'my') return;
+
+  let completed = 0;
+  
+  // Group picks
+  Object.keys(DEFAULT_TEAMS).forEach(gLetter => {
+    const picks = state.groups[gLetter] || [];
+    completed += picks.filter(Boolean).length;
+  });
+
+  // Wildcards
+  completed += (state.wildcards || []).length;
+
+  // Knockouts
+  PROPAGATION_ORDER.forEach(mId => {
+    if (state.knockouts[mId]?.winner) {
+      completed += 1;
+    }
+  });
+
+  const total = 75;
+  const percent = Math.min(100, Math.round((completed / total) * 100));
+
+  const percentDisplay = document.getElementById('progress-percent-display');
+  const fractionDisplay = document.getElementById('progress-fraction-display');
+  const fill = document.getElementById('progress-bar-fill');
+
+  if (percentDisplay && fractionDisplay && fill) {
+    percentDisplay.textContent = `${percent}%`;
+    fractionDisplay.textContent = `${completed} / ${total} picks completed`;
+    fill.style.width = `${percent}%`;
+
+    // Dynamic color shifting: red -> gold -> green
+    if (percent < 35) {
+      fill.style.backgroundColor = 'var(--color-red)';
+    } else if (percent < 90) {
+      fill.style.backgroundColor = 'var(--color-gold)';
+    } else {
+      fill.style.backgroundColor = 'var(--color-green)';
+    }
+  }
+}
+
+function findTargetMatch(sourceMatchId) {
+  for (const [matchId, rules] of Object.entries(MATCH_SOURCES)) {
+    if (rules.t1.type === 'knockout' && rules.t1.matchId === sourceMatchId) {
+      return matchId;
+    }
+    if (rules.t2?.type === 'knockout' && rules.t2.matchId === sourceMatchId) {
+      return matchId;
+    }
+  }
+  return null;
+}
+
+function autoFocusMatch(matchId) {
+  const targetMatchId = findTargetMatch(matchId);
+  if (!targetMatchId) {
+    const champPod = document.getElementById('champion-pod-display');
+    if (champPod) {
+      champPod.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+    return;
+  }
+
+  const targetCard = document.getElementById(`match-${targetMatchId}`);
+  if (targetCard) {
+    const wrapper = document.querySelector('.bracket-tree-wrapper');
+    const col = targetCard.closest('.bracket-column') || targetCard.closest('.center-champion-column');
+    if (wrapper && col) {
+      const targetScrollLeft = col.offsetLeft - (wrapper.offsetWidth / 2) + (col.offsetWidth / 2);
+      wrapper.scrollTo({
+        left: targetScrollLeft,
+        behavior: 'smooth'
+      });
+      
+      targetCard.style.outline = '4px solid var(--color-green)';
+      targetCard.style.transition = 'outline 0.3s ease';
+      setTimeout(() => {
+        targetCard.style.outline = 'none';
+      }, 1000);
+    }
+  }
+}
 

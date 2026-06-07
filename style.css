@@ -876,3 +876,164 @@ body {
   accent-color: var(--color-red);
 }
 
+
+/* Horizontal Panning & grab indicators */
+.bracket-tree-wrapper {
+  cursor: grab;
+  user-select: none;
+  overflow-x: auto;
+}
+
+.bracket-tree-wrapper:active {
+  cursor: grabbing;
+}
+
+.bracket-tree-wrapper * {
+  user-select: none;
+}
+
+/* Viewport Minimap Navigator */
+.minimap-nav-container {
+  background-color: var(--color-navy-light);
+  border: 3px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 25px;
+  box-shadow: 4px 4px 0px var(--color-border);
+}
+
+.minimap-nav-title {
+  font-family: var(--font-header);
+  font-size: 0.85rem;
+  color: var(--color-white);
+  text-align: center;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.minimap-buttons {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.minimap-btn {
+  font-family: var(--font-header);
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  background-color: var(--color-white);
+  color: var(--color-border);
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.minimap-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 2px 2px 0px var(--color-border);
+  background-color: #f8fafc;
+}
+
+.minimap-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.minimap-btn.btn-gold {
+  background-color: var(--color-gold);
+  color: var(--color-border);
+}
+
+.minimap-btn.btn-gold:hover {
+  background-color: #fbbf24;
+}
+
+.minimap-btn.active {
+  background-color: var(--color-green);
+  color: var(--color-border);
+  box-shadow: inset 2px 2px 0px rgba(0,0,0,0.15);
+}
+
+/* Collapsible Group Stage Cards */
+.group-card {
+  transition: max-height 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden;
+  max-height: 400px;
+}
+
+.group-card.collapsed {
+  max-height: 85px !important;
+  box-shadow: 2px 2px 0px var(--color-border);
+}
+
+.group-card.collapsed .group-team-list,
+.group-card.collapsed .group-instructions {
+  display: none !important;
+}
+
+.group-collapsed-summary {
+  display: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--color-border);
+  background-color: #F3F4F6;
+  padding: 6px 8px;
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  margin-top: 8px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.group-card.collapsed .group-collapsed-summary {
+  display: block;
+}
+
+.group-toggle-btn {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--color-border);
+  font-weight: bold;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.group-toggle-btn:hover {
+  color: var(--color-red);
+}
+
+.group-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+/* Hover Path Highlight */
+.team-slot {
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.team-slot.path-highlight {
+  background-color: #BAE6FD !important; /* sky-200 */
+  border-color: #0284C7 !important; /* sky-600 */
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.4) !important;
+  transform: scale(1.03);
+  z-index: 10;
+}
+
+.match-card.match-highlight {
+  border-color: #0284C7 !important;
+  box-shadow: 6px 6px 12px rgba(2, 132, 199, 0.2) !important;
+  transform: translateY(-2px);
+}
