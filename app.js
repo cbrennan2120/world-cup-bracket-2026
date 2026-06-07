@@ -1645,3 +1645,8 @@ async function fetchBracketsFromServer() {
     return false;
   }
 }
+
+// Expose navigation functions to global window scope for inline HTML onclick handlers
+window.switchView = switchView;
+window.setMobileRound = setMobileRound;
+
