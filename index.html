@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USA '26 World Cup Bracket Showdown!</title>
+  <meta name="description" content="Predict group stage rankings and the knockout tree. Real-time scores, friend sharing, and leaderboard calculations.">
+  <link rel="stylesheet" href="style.css">
+  <!-- Compressed Link Sharing and Confetti libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+
+  <!-- Cartoon Soccer Ball Decor -->
+  <div class="cartoon-decor-ball ball-left">⚽</div>
+  <div class="cartoon-decor-ball ball-right">⚽</div>
+
+  <div class="container">
+    
+    <!-- Header Banner -->
+    <header class="comic-header-banner">
+      <h1 class="comic-title-main">USA '26 BRACKET SHOWDOWN!</h1>
+      <p class="comic-subtitle">⭐ Predict the Champions & Challenge Your Friends! ⭐</p>
+    </header>
+
+    <!-- Coach Nickname Section -->
+    <section class="nickname-panel" id="nickname-section">
+      <label class="nickname-label" for="coach-nickname-input">🏆 What's your Coach Nickname?</label>
+      <div class="nickname-input-group">
+        <input type="text" id="coach-nickname-input" class="nickname-input" placeholder="e.g. Captain Kickass, SoccerMom99" maxlength="25">
+        <button id="save-nickname-btn" class="comic-btn">Save Coach</button>
+      </div>
+    </section>
+
+    <!-- Read-Only Friend View Indicator -->
+    <div id="friend-view-badge" class="friend-overlay-badge" style="display: none;">
+      ⚠️ VIEWING FRIEND'S BRACKET: <span id="friend-nickname-display">Friend</span> (Read-Only)
+    </div>
+    
+    <!-- Admin Edit Mode Indicator -->
+    <div id="admin-view-badge" class="friend-overlay-badge" style="display: none; background-color: var(--color-gold); color: var(--color-border);">
+      🚨 EDITING MASTER ACTUAL RESULTS (ADMIN MODE)
+    </div>
+
+    <!-- Navigation Tabs -->
+    <nav class="view-tabs">
+      <button class="tab-btn active" id="tab-my-predictions" onclick="switchView('my-predictions')">My Predictions</button>
+      <button class="tab-btn" id="tab-manager" onclick="switchView('manager')">Save & Share</button>
+      <button class="tab-btn" id="tab-leaderboard" onclick="switchView('leaderboard')">Leaderboard & Admin</button>
+    </nav>
+
+    <!-- Main Content Section: Predictions -->
+    <main id="section-my-predictions" class="view-section active">
+      
+      <!-- Group Stage Header -->
+      <h2 style="font-family: var(--font-header); text-align: center; color: var(--color-white); margin-bottom: 20px; font-size: 1.8rem; text-shadow: 2px 2px 0px #000;">
+        1. Group Stage Picks
+      </h2>
+      <p style="text-align: center; color: #FFF; font-weight: 600; margin-top: -15px; margin-bottom: 30px;">
+        Click teams to rank them <span style="color: var(--color-green)">1st</span>, <span style="color: var(--color-gold)">2nd</span>, and <span style="color: #60A5FA;">3rd</span> in each group. They will advance to the Wildcard Panel and Knockout Tree!
+      </p>
+
+      <!-- Group Stage Grid (Rendered by JS) -->
+      <div class="group-stage-grid" id="group-stage-container"></div>
+
+      <!-- Wildcard 3rd-Place Selector Panel (Rendered by JS) -->
+      <div id="wildcard-selection-panel" class="comic-panel" style="display: none; margin-bottom: 40px; border: var(--border-width) solid var(--color-border); box-shadow: var(--box-shadow-offset) var(--box-shadow-offset) 0px var(--color-border);">
+        <h3 class="panel-title" style="font-family: var(--font-header);">⭐ 2. Select Wildcard 3rd-Place Teams</h3>
+        <p style="font-weight: 600; margin-bottom: 15px; font-size: 0.95rem;">
+          Choose exactly <strong>8 teams</strong> from the 12 third-place finishers to advance to the Round of 32!
+        </p>
+        <div id="wildcard-checklist-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 15px;"></div>
+        <div id="wildcard-status-msg" style="font-family: var(--font-header); font-size: 0.9rem; color: var(--color-red); font-weight: bold;">Selected: 0 of 8</div>
+      </div>
+
+      <!-- Knockout Stage Header -->
+      <h2 style="font-family: var(--font-header); text-align: center; color: var(--color-white); margin: 40px 0 20px 0; font-size: 1.8rem; text-shadow: 2px 2px 0px #000;">
+        3. Knockout Bracket
+      </h2>
+      <p style="text-align: center; color: #FFF; font-weight: 600; margin-top: -15px; margin-bottom: 30px;">
+        Click on a team to advance them to the next round, all the way to the Champion!
+      </p>
+
+      <!-- Mobile Round Selector (Visible only on mobile) -->
+      <div class="mobile-bracket-notice">
+        📱 Scroll horizontally or use tabs below to navigate rounds:
+      </div>
+      <div class="mobile-round-selector">
+        <button class="comic-btn active" id="m-btn-r32" onclick="setMobileRound('r32')">R32</button>
+        <button class="comic-btn" id="m-btn-r16" onclick="setMobileRound('r16')">R16</button>
+        <button class="comic-btn" id="m-btn-qf" onclick="setMobileRound('qf')">Quarters</button>
+        <button class="comic-btn" id="m-btn-sf" onclick="setMobileRound('sf')">Semis</button>
+        <button class="comic-btn" id="m-btn-final" onclick="setMobileRound('final')">Finals / Champ</button>
+      </div>
+
+      <!-- Bracket Tree Scrollable Wrapper -->
+      <div class="bracket-tree-wrapper">
+        <div class="bracket-container" style="min-width: 1750px;">
+          
+          <!-- Round of 32 Left -->
+          <div class="bracket-column" id="r32-left" style="height: 1100px;"></div>
+
+          <!-- Round of 16 Left -->
+          <div class="bracket-column" id="r16-left" style="height: 1100px;"></div>
+
+          <!-- Quarterfinals Left -->
+          <div class="bracket-column" id="qf-left" style="height: 1100px;"></div>
+
+          <!-- Semifinals Left -->
+          <div class="bracket-column" id="sf-left" style="height: 1100px;"></div>
+
+          <!-- Center Final & Champion Pod -->
+          <div class="center-champion-column" style="height: 1100px;">
+            
+            <!-- Final Match Card -->
+            <div id="final-match-container"></div>
+            
+            <!-- Champion Pod -->
+            <div class="champion-pod-card">
+              <div class="champion-pod-header">👑 CHAMPION 👑</div>
+              <div class="champion-pod-display" id="champion-pod-display">
+                <span class="champ-empty-msg">Select Winner Above!</span>
+              </div>
+            </div>
+            
+          </div>
+
+          <!-- Semifinals Right -->
+          <div class="bracket-column" id="sf-right" style="height: 1100px;"></div>
+
+          <!-- Quarterfinals Right -->
+          <div class="bracket-column" id="qf-right" style="height: 1100px;"></div>
+
+          <!-- Round of 16 Right -->
+          <div class="bracket-column" id="r16-right" style="height: 1100px;"></div>
+
+          <!-- Round of 32 Right -->
+          <div class="bracket-column" id="r32-right" style="height: 1100px;"></div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Save & Share Panel Section -->
+    <section id="section-manager" class="view-section">
+      <div class="panel-grid">
+        
+        <!-- Save and Share Predictions -->
+        <div class="comic-panel">
+          <h3 class="panel-title">📤 Share My Predictions</h3>
+          
+          <div class="panel-row">
+            <label style="font-weight: 800; font-size: 1.1rem;">🔗 Copy Shareable Link</label>
+            <p style="font-size: 0.9rem; color: var(--color-dark-gray); font-weight: 600; margin-bottom: 5px;">
+              Send this link to friends so they can load and view your bracket in read-only mode!
+            </p>
+            <div class="share-url-container">
+              <input type="text" id="share-url-input" class="share-url-input" readonly>
+              <button id="copy-share-url-btn" class="comic-btn btn-gold">Copy</button>
+            </div>
+          </div>
+
+          <div class="panel-row" style="margin-top: 24px; border-top: 2px solid var(--color-border); padding-top: 20px;">
+            <label style="font-weight: 800; font-size: 1.1rem;">💾 Download Prediction JSON</label>
+            <p style="font-size: 0.9rem; color: var(--color-dark-gray); font-weight: 600; margin-bottom: 10px;">
+              Download your bracket file. You can upload this into leaderboards!
+            </p>
+            <button id="download-bracket-btn" class="comic-btn" style="width: 100%;">Download .json file</button>
+          </div>
+
+          <div class="panel-row" style="margin-top: 16px;">
+            <label style="font-weight: 800; font-size: 1.1rem;">📋 Copy Raw JSON Data</label>
+            <p style="font-size: 0.9rem; color: var(--color-dark-gray); font-weight: 600; margin-bottom: 10px;">
+              Copy raw bracket text to paste directly into group chats.
+            </p>
+            <button id="copy-json-btn" class="comic-btn btn-red" style="width: 100%;">Copy JSON String</button>
+          </div>
+
+        </div>
+
+        <!-- Import / View Friend's predictions -->
+        <div class="comic-panel">
+          <h3 class="panel-title">📥 View Friend's Bracket</h3>
+          
+          <p style="font-weight: 600; margin-bottom: 15px;">
+            Drag and drop a friend's prediction `.json` file, or select it below, to load and inspect their bracket.
+          </p>
+
+          <div class="upload-drag-zone" id="upload-drag-zone">
+            <div class="upload-icon">📄</div>
+            <p>Drag & Drop Friend's JSON File Here</p>
+            <p style="font-size: 0.85rem; color: var(--color-dark-gray); margin-top: 5px;">or click to browse files</p>
+            <input type="file" id="friend-file-input" accept=".json" style="display: none;">
+          </div>
+
+          <div id="loaded-friend-indicator" class="panel-row" style="display: none; margin-top: 20px; background-color: var(--color-white); border: 3px solid var(--color-border); border-radius: 8px; padding: 12px; text-align: center;">
+            <p style="font-weight: 800; color: var(--color-red);">🎉 Successfully Loaded: <span id="loaded-friend-nickname">Nickname</span></p>
+            <div style="display: flex; gap: 10px; margin-top: 10px; justify-content: center;">
+              <button id="toggle-friend-view-btn" class="comic-btn btn-gold" style="padding: 8px 16px; font-size: 0.9rem;">View Friend's Bracket</button>
+              <button id="unload-friend-btn" class="comic-btn btn-red" style="padding: 8px 16px; font-size: 0.9rem;">Back to Mine</button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Leaderboard & Admin Dashboard Section -->
+    <section id="section-leaderboard" class="view-section">
+      
+      <!-- Live Sync Panel -->
+      <div class="comic-panel" style="margin-bottom: 30px;">
+        <h3 class="panel-title">🔄 Live Tournament Scores</h3>
+        
+        <div class="sync-status">
+          <div class="sync-status-indicator">
+            <span class="status-dot dot-yellow" id="sync-status-dot"></span>
+            <span id="sync-status-text">Checking live results status...</span>
+          </div>
+          <button id="sync-now-btn" class="comic-btn btn-gold" style="padding: 8px 16px; font-size: 0.9rem;">Sync Now</button>
+        </div>
+
+        <p style="font-size: 0.95rem; font-weight: 600; line-height: 1.4; color: var(--color-dark-gray);">
+          Using <strong>Option 1 (Live Community Sync)</strong>, the app pulls directly from the openfootball 2026 World Cup repository.
+          It calculates group standings and updates knockout matches automatically.
+        </p>
+
+        <!-- Admin Override Toggle -->
+        <div style="margin-top: 20px; border-top: 2px solid var(--color-border); padding-top: 15px; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <span style="font-weight: 800; font-size: 1.05rem; display: block;">🛠️ Admin Manual Results Editor</span>
+            <span style="font-size: 0.85rem; color: var(--color-dark-gray); font-weight: 600;">Enable this to manually edit the actual results (useful if the live feed is delayed).</span>
+          </div>
+          <button id="toggle-admin-btn" class="comic-btn btn-red" style="padding: 10px 20px;">Edit Master Results</button>
+        </div>
+      </div>
+
+      <!-- Scoreboard Leaderboard -->
+      <div class="comic-panel">
+        <h3 class="panel-title">🏆 Predictions Leaderboard</h3>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+          <p style="font-weight: 600;">
+            Upload your friends' JSON files to compare scores! The leaderboard matches everyone's predictions against the Master Results.
+          </p>
+          <div style="display: flex; gap: 10px;">
+            <button id="upload-leaderboard-btn" class="comic-btn btn-gold" style="padding: 8px 16px; font-size: 0.9rem;">Add Bracket File</button>
+            <input type="file" id="leaderboard-file-input" accept=".json" multiple style="display: none;">
+            <button id="clear-leaderboard-btn" class="comic-btn btn-red" style="padding: 8px 16px; font-size: 0.9rem;">Reset Board</button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="scoreboard-table">
+            <thead>
+              <tr>
+                <th class="rank-cell">Rank</th>
+                <th>Coach Nickname</th>
+                <th style="text-align: center;">Group Pts (16 max)</th>
+                <th style="text-align: center;">Knockout Pts (64 max)</th>
+                <th class="score-cell">Total Score</th>
+                <th class="delete-cell">Action</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-tbody">
+              <!-- Rendered Dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <!-- Toast Notification element -->
+  <div id="toast-container" style="display: none;" class="toast"></div>
+
+</body>
+</html>

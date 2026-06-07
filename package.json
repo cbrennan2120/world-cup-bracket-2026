@@ -1,0 +1,13 @@
+{
+  "name": "world-cup-bracket-2026",
+  "version": "1.0.0",
+  "description": "USA '26 World Cup Prediction Bracket Showdown static SPA",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0"
+  }
+}
