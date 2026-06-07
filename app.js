@@ -1440,9 +1440,14 @@ function calculateScores(pred, actual) {
   let wildcardScore = 0;
   let knockoutScore = 0;
 
+  const predGroups = pred.groups || {};
+  const predWildcards = pred.wildcards || [];
+  const predKnockouts = pred.knockouts || {};
+  const actualKnockouts = actual.knockouts || {};
+
   // Group picks: 1 pt each for correct 1st, 2nd, and 3rd place rankings
   Object.keys(DEFAULT_TEAMS).forEach(gLetter => {
-    const predPicks = pred.groups[gLetter] || [];
+    const predPicks = predGroups[gLetter] || [];
     const actualPicks = actual.groups[gLetter] || [];
     
     if (predPicks[0] && predPicks[0] === actualPicks[0]) groupScore += 1;
@@ -1451,7 +1456,6 @@ function calculateScores(pred, actual) {
   });
 
   // Wildcard selections: 1 pt each for correct wildcard teams predicted to advance
-  const predWildcards = pred.wildcards || [];
   const actualWildcards = actual.wildcards || [];
   predWildcards.forEach(wTeamId => {
     if (actualWildcards.includes(wTeamId)) {
@@ -1464,7 +1468,7 @@ function calculateScores(pred, actual) {
   // R32 (16 matches)
   const r32Matches = ['R32_1', 'R32_2', 'R32_3', 'R32_4', 'R32_5', 'R32_6', 'R32_7', 'R32_8', 'R32_9', 'R32_10', 'R32_11', 'R32_12', 'R32_13', 'R32_14', 'R32_15', 'R32_16'];
   r32Matches.forEach(mId => {
-    if (pred.knockouts[mId]?.winner && pred.knockouts[mId].winner === actual.knockouts[mId]?.winner) {
+    if (predKnockouts[mId]?.winner && predKnockouts[mId].winner === actualKnockouts[mId]?.winner) {
       knockoutScore += 2;
     }
   });
@@ -1472,7 +1476,7 @@ function calculateScores(pred, actual) {
   // R16 (8 matches)
   const r16Matches = ['R16_1', 'R16_2', 'R16_3', 'R16_4', 'R16_5', 'R16_6', 'R16_7', 'R16_8'];
   r16Matches.forEach(mId => {
-    if (pred.knockouts[mId]?.winner && pred.knockouts[mId].winner === actual.knockouts[mId]?.winner) {
+    if (predKnockouts[mId]?.winner && predKnockouts[mId].winner === actualKnockouts[mId]?.winner) {
       knockoutScore += 4;
     }
   });
@@ -1480,7 +1484,7 @@ function calculateScores(pred, actual) {
   // QF (4 matches)
   const qfMatches = ['QF_1', 'QF_2', 'QF_3', 'QF_4'];
   qfMatches.forEach(mId => {
-    if (pred.knockouts[mId]?.winner && pred.knockouts[mId].winner === actual.knockouts[mId]?.winner) {
+    if (predKnockouts[mId]?.winner && predKnockouts[mId].winner === actualKnockouts[mId]?.winner) {
       knockoutScore += 8;
     }
   });
@@ -1488,13 +1492,13 @@ function calculateScores(pred, actual) {
   // SF (2 matches)
   const sfMatches = ['SF_1', 'SF_2'];
   sfMatches.forEach(mId => {
-    if (pred.knockouts[mId]?.winner && pred.knockouts[mId].winner === actual.knockouts[mId]?.winner) {
+    if (predKnockouts[mId]?.winner && predKnockouts[mId].winner === actualKnockouts[mId]?.winner) {
       knockoutScore += 16;
     }
   });
 
   // Final / Champ (1 match)
-  if (pred.knockouts['F_1']?.winner && pred.knockouts['F_1'].winner === actual.knockouts['F_1']?.winner) {
+  if (predKnockouts['F_1']?.winner && predKnockouts['F_1'].winner === actualKnockouts['F_1']?.winner) {
     knockoutScore += 32;
   }
 
