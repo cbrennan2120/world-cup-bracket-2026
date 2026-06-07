@@ -219,6 +219,7 @@ masterResults.nickname = "Master Results";
 
 let friendBracket = null;
 let leaderboardBank = [];
+let clientId = '';
 
 // Navigation & views
 let currentViewMode = 'my';
@@ -235,6 +236,9 @@ window.addEventListener('DOMContentLoaded', () => {
   updateSyncPanelUI();
   renderLeaderboard();
   
+  // Fetch central database brackets on load
+  fetchBracketsFromServer();
+  
   // Setup elements
   document.getElementById('save-nickname-btn').addEventListener('click', saveNickname);
   document.getElementById('download-bracket-btn').addEventListener('click', downloadBracketJsonFile);
@@ -247,6 +251,13 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('leaderboard-file-input').click();
   });
   document.getElementById('leaderboard-file-input').addEventListener('change', handleLeaderboardUpload);
+  document.getElementById('publish-leaderboard-btn').addEventListener('click', publishBracketToLeaderboard);
+  document.getElementById('sync-server-btn').addEventListener('click', async () => {
+    const success = await fetchBracketsFromServer();
+    if (success) {
+      showToast("🔄 Leaderboard synced with server!");
+    }
+  });
   
   // Friend View event listeners
   document.getElementById('friend-file-input').addEventListener('change', handleFriendUpload);
@@ -285,6 +296,12 @@ function showToast(message) {
 
 // LocalStorage helpers
 function loadLocalStorage() {
+  clientId = localStorage.getItem('wc_client_id');
+  if (!clientId) {
+    clientId = 'client_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('wc_client_id', clientId);
+  }
+
   const savedNick = localStorage.getItem('wc_nickname');
   if (savedNick) {
     state.nickname = savedNick;
@@ -1489,12 +1506,52 @@ function calculateScores(pred, actual) {
   };
 }
 
-// Delete friend from local leaderboard bank
-function deleteFriendFromBank(nick) {
-  leaderboardBank = leaderboardBank.filter(b => b.nickname !== nick);
-  saveLeaderboardToStorage();
-  renderLeaderboard();
-  showToast(`Removed friend "${nick}" from board.`);
+// Delete friend bracket (passcode protected for backend, fallback to local removal)
+async function deleteFriendFromBank(nick) {
+  const passcode = prompt(`Enter Admin Passcode to delete bracket for "${nick}":`);
+  if (passcode === null) return; // cancelled
+
+  if (!passcode.trim()) {
+    showToast("❌ Admin passcode cannot be empty.");
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/delete-bracket', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ nickname: nick, passcode: passcode.trim() })
+    });
+
+    const resData = await response.json();
+    if (response.ok) {
+      showToast(`🗑️ Deleted bracket for "${nick}" from database.`);
+      leaderboardBank = leaderboardBank.filter(b => b.nickname !== nick);
+      saveLeaderboardToStorage();
+      renderLeaderboard();
+    } else {
+      if (response.status === 403) {
+        showToast(`❌ Error: ${resData.error || 'Unauthorized'}`);
+      } else {
+        if (confirm(`Could not delete from server (${resData.error || 'not found'}). Delete locally only?`)) {
+          leaderboardBank = leaderboardBank.filter(b => b.nickname !== nick);
+          saveLeaderboardToStorage();
+          renderLeaderboard();
+          showToast(`Removed local bracket "${nick}".`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Error deleting bracket:", err);
+    if (confirm("Network error deleting from server. Delete locally only?")) {
+      leaderboardBank = leaderboardBank.filter(b => b.nickname !== nick);
+      saveLeaderboardToStorage();
+      renderLeaderboard();
+      showToast(`Removed local bracket "${nick}".`);
+    }
+  }
 }
 
 // Clear Leaderboard bank completely
@@ -1504,5 +1561,87 @@ function clearLeaderboardBank() {
     saveLeaderboardToStorage();
     renderLeaderboard();
     showToast("Standings cleared!");
+  }
+}
+
+// Publish local bracket to central Netlify Blobs database
+async function publishBracketToLeaderboard() {
+  const nickname = state.nickname || document.getElementById('coach-nickname-input').value.trim();
+  if (!nickname) {
+    showToast("❌ Please save a Coach Nickname first!");
+    switchView('my-predictions');
+    document.getElementById('coach-nickname-input').focus();
+    return;
+  }
+
+  state.nickname = nickname;
+  localStorage.setItem('wc_nickname', nickname);
+  saveMyBracketToStorage();
+
+  const payload = {
+    nickname: state.nickname,
+    clientId: localStorage.getItem('wc_client_id'),
+    groups: state.groups,
+    wildcards: state.wildcards,
+    knockouts: state.knockouts
+  };
+
+  const btn = document.getElementById('publish-leaderboard-btn');
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '📤 Publishing...';
+
+  try {
+    const response = await fetch('/api/submit-bracket', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const resData = await response.json();
+    if (response.ok) {
+      showToast(`🎉 Published bracket for "${state.nickname}"!`);
+      await fetchBracketsFromServer();
+    } else {
+      showToast(`❌ Error: ${resData.error || 'Failed to publish'}`);
+    }
+  } catch (err) {
+    console.error("Error publishing bracket:", err);
+    showToast("❌ Network error publishing bracket.");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+// Fetch brackets from serverless API and merge with local custom ones
+async function fetchBracketsFromServer() {
+  try {
+    const response = await fetch('/api/get-brackets');
+    if (!response.ok) {
+      throw new Error("HTTP error " + response.status);
+    }
+    const remoteBrackets = await response.json();
+    
+    // Merge remote database brackets into leaderboardBank
+    const merged = [...remoteBrackets];
+    
+    leaderboardBank.forEach(local => {
+      const exists = remoteBrackets.some(remote => remote.nickname.toLowerCase() === local.nickname.toLowerCase());
+      if (!exists && local.nickname.toLowerCase() !== state.nickname.toLowerCase()) {
+        merged.push(local);
+      }
+    });
+
+    leaderboardBank = merged;
+    saveLeaderboardToStorage();
+    renderLeaderboard();
+    return true;
+  } catch (err) {
+    console.error("Error fetching brackets from server:", err);
+    showToast("⚠️ Could not sync leaderboard with central database.");
+    return false;
   }
 }

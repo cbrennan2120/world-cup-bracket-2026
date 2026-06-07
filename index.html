@@ -152,6 +152,17 @@
         <div class="comic-panel">
           <h3 class="panel-title">📤 Share My Predictions</h3>
           
+          <!-- Live DB Public Leaderboard Publish -->
+          <div class="panel-row" style="background-color: #FEF3C7; padding: 15px; border: 3px dashed var(--color-border); border-radius: 8px; margin-bottom: 20px;">
+            <label style="font-weight: 800; font-size: 1.1rem; color: var(--color-navy); display: block; margin-bottom: 5px;">🌎 Live Shared Leaderboard</label>
+            <p style="font-size: 0.85rem; color: var(--color-border); font-weight: 600; margin-bottom: 12px; line-height: 1.3;">
+              Publish your bracket to our central live server! Everyone visiting this site will see your predictions and live-calculated score.
+            </p>
+            <button id="publish-leaderboard-btn" class="comic-btn btn-red" style="width: 100%; font-size: 0.95rem; display: flex; justify-content: center; align-items: center; gap: 8px;">
+              🚀 Publish to Live Leaderboard
+            </button>
+          </div>
+
           <div class="panel-row">
             <label style="font-weight: 800; font-size: 1.1rem;">🔗 Copy Shareable Link</label>
             <p style="font-size: 0.9rem; color: var(--color-dark-gray); font-weight: 600; margin-bottom: 5px;">
@@ -244,11 +255,12 @@
         <h3 class="panel-title">🏆 Predictions Leaderboard</h3>
 
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
-          <p style="font-weight: 600;">
-            Upload your friends' JSON files to compare scores! The leaderboard matches everyone's predictions against the Master Results.
+          <p style="font-weight: 600; max-width: 600px; margin: 0; font-size: 0.95rem;">
+            This board automatically loads everyone's predictions from our live database. You can also upload custom friend JSON files to compare them locally!
           </p>
-          <div style="display: flex; gap: 10px;">
-            <button id="upload-leaderboard-btn" class="comic-btn btn-gold" style="padding: 8px 16px; font-size: 0.9rem;">Add Bracket File</button>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="sync-server-btn" class="comic-btn btn-gold" style="padding: 8px 16px; font-size: 0.9rem;">🔄 Sync Live Board</button>
+            <button id="upload-leaderboard-btn" class="comic-btn" style="padding: 8px 16px; font-size: 0.9rem; background-color: var(--color-white);">Add JSON File</button>
             <input type="file" id="leaderboard-file-input" accept=".json" multiple style="display: none;">
             <button id="clear-leaderboard-btn" class="comic-btn btn-red" style="padding: 8px 16px; font-size: 0.9rem;">Reset Board</button>
           </div>
