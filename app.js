@@ -1174,21 +1174,56 @@ function updateSyncPanelUI() {
   }
 }
 
-// Admin Mode Toggle
-function toggleAdminMode() {
+// Admin Mode Toggle (passcode protected)
+async function toggleAdminMode() {
   const btn = document.getElementById('toggle-admin-btn');
   const badge = document.getElementById('admin-view-badge');
 
   if (currentViewMode !== 'admin') {
-    currentViewMode = 'admin';
-    friendBracket = null;
-    document.getElementById('friend-view-badge').style.display = 'none';
-    
-    badge.style.display = 'block';
-    btn.textContent = "Exit Master Editor";
-    btn.classList.add('btn-gold');
-    btn.classList.remove('btn-red');
-    showToast("🛠️ Master Results Editor Mode Enabled!");
+    const passcode = prompt("Enter Admin Passcode to enable Edit Master Results mode:");
+    if (passcode === null) return; // cancelled
+    if (!passcode.trim()) {
+      showToast("❌ Admin passcode cannot be empty.");
+      return;
+    }
+
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = "Verifying...";
+
+    try {
+      const response = await fetch('/api/verify-passcode', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ passcode: passcode.trim() })
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        showToast(`❌ Admin access denied: ${resData.error || 'Invalid passcode'}`);
+        return;
+      }
+
+      currentViewMode = 'admin';
+      friendBracket = null;
+      document.getElementById('friend-view-badge').style.display = 'none';
+      
+      badge.style.display = 'block';
+      btn.textContent = "Exit Master Editor";
+      btn.classList.add('btn-gold');
+      btn.classList.remove('btn-red');
+      showToast("🛠️ Master Results Editor Mode Enabled!");
+    } catch (err) {
+      console.error("Error verifying admin passcode:", err);
+      showToast("❌ Network error verifying passcode.");
+    } finally {
+      btn.disabled = false;
+      if (currentViewMode !== 'admin') {
+        btn.textContent = originalText;
+      }
+    }
   } else {
     currentViewMode = 'my';
     badge.style.display = 'none';
@@ -1486,17 +1521,14 @@ function renderLeaderboard() {
     const tdDelete = document.createElement('td');
     tdDelete.className = 'delete-cell';
     
-    if (!item.isUser) {
-      const delBtn = document.createElement('button');
-      delBtn.className = 'btn-icon-delete';
-      delBtn.innerHTML = '🗑️';
-      delBtn.addEventListener('click', () => {
-        deleteFriendFromBank(item.nickname);
-      });
-      tdDelete.appendChild(delBtn);
-    } else {
-      tdDelete.textContent = '—';
-    }
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-icon-delete';
+    delBtn.innerHTML = '🗑️';
+    delBtn.title = "Delete bracket";
+    delBtn.addEventListener('click', () => {
+      deleteFriendFromBank(item.data.nickname);
+    });
+    tdDelete.appendChild(delBtn);
     tr.appendChild(tdDelete);
 
     tbody.appendChild(tr);
